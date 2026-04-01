@@ -10,17 +10,15 @@
   </div>
 
   <!-- Card inadimplentes — clicável -->
-  <a href="<?= APP_URL ?>/index.php?page=dashboard&cobranca=1<?= !empty($dados['inadimplentes']) ? '#cobranca' : '' ?>"
-     style="text-decoration:none">
-    <div class="stat-card red" style="cursor:pointer;transition:box-shadow .15s;border:1px solid #fca5a5"
-         onmouseover="this.style.boxShadow='0 4px 16px rgba(220,38,38,.2)'"
-         onmouseout="this.style.boxShadow=''">
-      <div class="stat-icon">⚠️</div>
-      <div class="label">Inadimplentes</div>
-      <div class="value"><?= $dados['total_inadimplentes'] ?></div>
-      <div class="sub" style="color:#ef4444">clique para ver e cobrar →</div>
-    </div>
-  </a>
+  <div class="stat-card red" style="cursor:pointer;transition:box-shadow .15s;border:1px solid #fca5a5"
+       onclick="location.href='<?= APP_URL ?>/index.php?page=dashboard&cobranca=1<?= !empty($dados['inadimplentes']) ? '#cobranca' : '' ?>'"
+       onmouseover="this.style.boxShadow='0 4px 16px rgba(220,38,38,.2)'"
+       onmouseout="this.style.boxShadow=''">
+    <div class="stat-icon">⚠️</div>
+    <div class="label">Cobrança</div>
+    <div class="value"><?= $dados['total_inadimplentes'] ?></div>
+    <div class="sub" style="color:#ef4444">clique para ver e cobrar →</div>
+  </div>
 
   <div class="stat-card green">
     <div class="stat-icon">💰</div>
@@ -28,11 +26,18 @@
     <div class="value" style="font-size:20px"><?= formatMoeda($dados['total_recebido_mes']) ?></div>
     <div class="sub">mensalidades pagas</div>
   </div>
-  <div class="stat-card orange">
+  <div class="stat-card red">
+    <div class="stat-icon">🔴</div>
+    <div class="label">Pagamentos Atrasados</div>
+    <?php $totalAtrasado = array_sum(array_column($dados['proximos_vencimentos'], 'valor')); ?>
+    <div class="value"><?= formatMoeda($totalAtrasado) ?></div>
+    <div class="sub"><?= count($dados['proximos_vencimentos']) ?> cobrança<?= count($dados['proximos_vencimentos'])!=1?'s':'' ?></div>
+  </div>
+  <div class="stat-card blue">
     <div class="stat-icon">📅</div>
-    <div class="label">Vencem em 7 dias</div>
-    <div class="value"><?= count($dados['proximos_vencimentos']) ?></div>
-    <div class="sub">mensalidades</div>
+    <div class="label">A Receber — <?= date('m/Y', strtotime('+1 month')) ?></div>
+    <div class="value" style="font-size:20px"><?= formatMoeda($dados['total_mes_subsequente']) ?></div>
+    <div class="sub"><?= count($dados['lancamentos_futuros']) ?> lançamento<?= count($dados['lancamentos_futuros'])!=1?'s':'' ?> futuro<?= count($dados['lancamentos_futuros'])!=1?'s':'' ?></div>
   </div>
 </div>
 
@@ -40,126 +45,146 @@
      PAINEL DE COBRANÇA (aparece ao clicar no card vermelho)
 ============================================================ -->
 <?php if (!empty($dados['inadimplentes'])): ?>
+<?php
+  $totalGeralValor  = 0;
+  $totalGeralAlunos = 0;
+  foreach ($dados['inadimplentes'] as $resp) {
+      $totalGeralValor  += $resp['total_valor'];
+      $totalGeralAlunos += count($resp['alunos']);
+  }
+?>
 <div id="cobranca" class="card" style="margin-bottom:24px;border:2px solid #fca5a5">
-  <div class="card-header" style="background:#fff5f5">
+
+  <!-- Header do painel -->
+  <div class="card-header" style="background:#fff5f5;flex-wrap:wrap;gap:8px">
     <span>📞</span>
     <h2 style="color:#dc2626">Lista de Cobrança</h2>
-    <span class="badge badge-danger" style="margin-left:8px"><?= count($dados['inadimplentes']) ?> responsaveis</span>
-    <div class="ms-auto d-flex gap-8">
-      <!-- Botão copiar todos os WhatsApp -->
+    <span class="badge badge-danger"><?= count($dados['inadimplentes']) ?> responsaveis</span>
+    <div class="ms-auto d-flex gap-8" style="flex-wrap:wrap">
       <button onclick="copiarTodosContatos()" class="btn btn-outline btn-sm">
-        📋 Copiar todos os contatos
+        📋 Copiar contatos
       </button>
       <a href="<?= APP_URL ?>/index.php?page=dashboard" class="btn btn-outline btn-sm">✕ Fechar</a>
     </div>
   </div>
 
-  <!-- Resumo total -->
-  <?php
-    $totalGeralValor = 0;
-    $totalGeralAlunos = 0;
-    foreach ($dados['inadimplentes'] as $resp) {
-        $totalGeralValor  += $resp['total_valor'];
-        $totalGeralAlunos += count($resp['alunos']);
-    }
-  ?>
-  <div style="padding:12px 20px;background:#fef2f2;border-bottom:1px solid #fecaca;display:flex;gap:24px;font-size:13px">
-    <span>👨‍👩‍👧 <strong><?= $totalGeralAlunos ?></strong> alunos inadimplentes</span>
-    <span>💰 Total em aberto: <strong style="color:#dc2626"><?= formatMoeda($totalGeralValor) ?></strong></span>
-    <span>📅 Gerado em: <?= date('d/m/Y H:i') ?></span>
+  <!-- Resumo — mobile empilha verticalmente -->
+  <div style="padding:10px 16px;background:#fef2f2;border-bottom:1px solid #fecaca;
+              display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;align-items:center">
+    <span>👨‍👩‍👧 <strong><?= $totalGeralAlunos ?></strong> alunos</span>
+    <span>💰 <strong style="color:#dc2626"><?= formatMoeda($totalGeralValor) ?></strong> em aberto</span>
+    <span style="color:#94a3b8;font-size:12px">📅 <?= date('d/m/Y H:i') ?></span>
   </div>
 
+  <!-- Lista de responsáveis -->
   <div id="lista-cobranca">
   <?php foreach ($dados['inadimplentes'] as $idx => $resp):
-    $tel     = preg_replace('/\D/', '', $resp['telefone']);
-    $temTel  = strlen($tel) >= 10;
+    $tel    = preg_replace('/\D/', '', $resp['telefone']);
+    $temTel = strlen($tel) >= 10;
   ?>
-  <div class="responsavel-cobranca" style="border-bottom:1px solid #fee2e2;padding:16px 20px"
+  <div class="responsavel-cobranca"
+       style="border-bottom:1px solid #fee2e2;padding:14px 16px"
        data-nome="<?= h($resp['responsavel_nome']) ?>"
        data-tel="<?= h($resp['telefone']) ?>">
 
-    <div style="display:flex;align-items:flex-start;gap:14px">
-
-      <!-- Avatar -->
-      <div style="width:42px;height:42px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
+    <!-- Linha 1: Avatar + Nome + Badges -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="width:38px;height:38px;background:#fee2e2;border-radius:50%;
+                  display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">
         👤
       </div>
-
-      <!-- Info responsável -->
       <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span style="font-weight:700;font-size:15px"><?= h($resp['responsavel_nome']) ?></span>
+        <div style="font-weight:700;font-size:15px;line-height:1.3">
+          <?= h($resp['responsavel_nome']) ?>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:3px">
           <span class="badge badge-danger"><?= formatMoeda($resp['total_valor']) ?> em aberto</span>
           <span class="badge badge-secondary"><?= $resp['total_pendencias'] ?> mês(es)</span>
         </div>
+      </div>
+    </div>
 
-        <!-- Contato -->
-        <div style="display:flex;gap:12px;margin-top:6px;flex-wrap:wrap;align-items:center">
-          <?php if ($temTel): ?>
-          <a href="https://wa.me/55<?= $tel ?>"
-             target="_blank"
-             style="display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.555 4.122 1.528 5.857L0 24l6.337-1.509A11.955 11.955 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.886 0-3.65-.498-5.178-1.367l-.371-.22-3.761.896.958-3.663-.244-.389A9.946 9.946 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-            <?= h($resp['telefone']) ?>
+    <!-- Linha 2: Botões de ação (full width no mobile) -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+      <?php if ($temTel): ?>
+      <a href="https://wa.me/55<?= $tel ?>" target="_blank"
+         style="display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;
+                padding:9px 16px;border-radius:8px;font-size:13.5px;font-weight:600;
+                text-decoration:none;flex:1;justify-content:center;min-width:140px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.555 4.122 1.528 5.857L0 24l6.337-1.509A11.955 11.955 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.886 0-3.65-.498-5.178-1.367l-.371-.22-3.761.896.958-3.663-.244-.389A9.946 9.946 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+        </svg>
+        <?= h($resp['telefone']) ?>
+      </a>
+      <?php else: ?>
+      <span style="font-size:13px;color:#94a3b8;padding:8px 0">📵 Sem telefone</span>
+      <?php endif; ?>
+
+      <button onclick="gerarMensagem(<?= $idx ?>)"
+              style="display:inline-flex;align-items:center;justify-content:center;gap:6px;
+                     background:#fff;border:1px solid #d1d5db;padding:9px 16px;
+                     border-radius:8px;font-size:13.5px;cursor:pointer;flex:1;min-width:140px;
+                     font-family:inherit;color:#374151">
+        📝 Copiar mensagem
+      </button>
+
+      <a href="<?= APP_URL ?>/index.php?page=financeiro&busca=<?= urlencode($resp['alunos'][0]['nome_completo'] ?? '') ?>"
+         style="display:inline-flex;align-items:center;justify-content:center;gap:6px;
+                background:#16a34a;color:#fff;padding:9px 16px;border-radius:8px;
+                font-size:13.5px;font-weight:600;text-decoration:none;flex:1;min-width:140px">
+        ✅ Registrar pagamento
+      </a>
+    </div>
+
+    <!-- Linha 3: Cards dos alunos -->
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <?php foreach ($resp['alunos'] as $aluno): ?>
+      <div style="background:#fff;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;width:100%;box-sizing:border-box">
+
+        <!-- Nome e faixa numa linha -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span class="faixa-badge faixa-<?= strtolower(explode('/',$aluno['faixa'])[0]) ?>">
+            <?= h($aluno['faixa']) ?>
+          </span>
+          <a href="<?= APP_URL ?>/index.php?page=alunos.ver&id=<?= $aluno['id'] ?>"
+             style="font-weight:700;font-size:14px;color:#1e293b;text-decoration:none;flex:1">
+            <?= h($aluno['nome_completo']) ?>
           </a>
-          <button onclick="gerarMensagem(<?= $idx ?>)"
-                  class="btn btn-outline btn-sm"
-                  title="Copiar mensagem de cobrança">
-            📝 Copiar mensagem
-          </button>
-          <?php else: ?>
-          <span style="font-size:13px;color:#94a3b8">📵 Sem telefone cadastrado</span>
-          <?php endif; ?>
-
-          <?php if ($resp['email']): ?>
-          <a href="mailto:<?= h($resp['email']) ?>"
-             style="font-size:13px;color:#1d4ed8">✉️ <?= h($resp['email']) ?></a>
-          <?php endif; ?>
+          <span style="background:#fee2e2;color:#dc2626;font-size:12px;font-weight:700;
+                       padding:3px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0">
+            <?= formatMoeda($aluno['total_valor']) ?>
+          </span>
         </div>
 
-        <!-- Alunos deste responsável -->
-        <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
-          <?php foreach ($resp['alunos'] as $aluno): ?>
-          <div style="background:#fff;border:1px solid #fecaca;border-radius:6px;padding:8px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <span class="faixa-badge faixa-<?= strtolower(explode('/',$aluno['faixa'])[0]) ?>">
-              <?= h($aluno['faixa']) ?>
-            </span>
-            <a href="<?= APP_URL ?>/index.php?page=alunos.ver&id=<?= $aluno['id'] ?>"
-               style="font-weight:600;font-size:13.5px;color:#1e293b;text-decoration:none;flex:1">
-              <?= h($aluno['nome_completo']) ?>
-            </a>
-            <span style="font-size:12px;color:#64748b"><?= h($aluno['academia_nome']) ?></span>
-            <span class="badge badge-danger" style="flex-shrink:0"><?= formatMoeda($aluno['total_valor']) ?></span>
+        <!-- Academia -->
+        <div style="font-size:12px;color:#64748b;margin-bottom:6px">
+          📍 <?= h($aluno['academia_nome']) ?>
+        </div>
 
-            <!-- Meses pendentes -->
-            <div style="width:100%;display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">
-              <?php foreach ($aluno['pendencias'] as $p): ?>
-              <?php
-                $bclass = $p['status'] === 'atrasado' ? 'badge-danger' : 'badge-warning';
-                $icon   = $p['status'] === 'atrasado' ? '🔴' : '⏳';
-              ?>
-              <span class="badge <?= $bclass ?>" style="font-size:11px">
-                <?= $icon ?> <?= mesReferencia($p['mes']) ?> — <?= formatMoeda($p['valor']) ?>
-              </span>
-              <?php endforeach; ?>
-            </div>
+        <!-- Meses pendentes — cada um em linha própria no mobile -->
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <?php foreach ($aluno['pendencias'] as $p):
+            $atrasado = $p['status'] === 'atrasado';
+          ?>
+          <div style="display:flex;align-items:center;justify-content:space-between;
+                      background:<?= $atrasado ? '#fef2f2' : '#fefce8' ?>;
+                      border:1px solid <?= $atrasado ? '#fecaca' : '#fde68a' ?>;
+                      border-radius:6px;padding:5px 10px;font-size:12.5px">
+            <span><?= $atrasado ? '🔴' : '⏳' ?> <?= mesReferencia($p['mes']) ?></span>
+            <span style="font-weight:600;color:<?= $atrasado ? '#dc2626' : '#92400e' ?>">
+              <?= formatMoeda($p['valor']) ?>
+            </span>
           </div>
           <?php endforeach; ?>
         </div>
-      </div>
 
-      <!-- Ação rápida: registrar pagamento -->
-      <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px">
-        <a href="<?= APP_URL ?>/index.php?page=financeiro&busca=<?= urlencode($resp['alunos'][0]['nome_completo'] ?? '') ?>"
-           class="btn btn-success btn-sm">
-          ✅ Registrar pagamento
-        </a>
       </div>
-
+      <?php endforeach; ?>
     </div>
+
   </div>
 
-  <!-- Dados hidden para geração de mensagem -->
   <script>
   window.inadimplentes = window.inadimplentes || [];
   window.inadimplentes[<?= $idx ?>] = {
@@ -171,11 +196,7 @@
               'academia' => $a['academia_nome'],
               'meses'    => array_map(function($p) { return $p['mes']; }, $a['pendencias']),
               'pendencias' => array_map(function($p) {
-                  return [
-                      'mes'    => $p['mes'],
-                      'status' => $p['status'],
-                      'valor'  => (float)$p['valor'],
-                  ];
+                  return ['mes'=>$p['mes'],'status'=>$p['status'],'valor'=>(float)$p['valor']];
               }, $a['pendencias']),
           ];
       }, $resp['alunos'])) ?>,
@@ -203,29 +224,71 @@
 
   <div class="card">
     <div class="card-header">
-      <span>⏳</span>
-      <h2>Proximos Vencimentos</h2>
-      <a href="<?= BASE_URL ?>/?page=financeiro&status=pendente" class="btn btn-outline btn-sm">Ver todos</a>
+      <span>🔴</span>
+      <h2>Pagamentos Atrasados</h2>
+      <a href="<?= BASE_URL ?>/?page=financeiro&status=atrasado" class="btn btn-outline btn-sm">Ver todos</a>
     </div>
     <div class="card-body" style="padding:0">
       <?php if (empty($dados['proximos_vencimentos'])): ?>
         <div class="empty-state" style="padding:28px">
           <div>✅</div><h3>Tudo em dia!</h3>
-          <p>Nenhum vencimento nos proximos 7 dias.</p>
+          <p>Nenhum pagamento atrasado.</p>
         </div>
       <?php else: ?>
-        <table>
-          <thead><tr><th>Aluno</th><th>Vencimento</th><th>Valor</th></tr></thead>
-          <tbody>
-          <?php foreach ($dados['proximos_vencimentos'] as $m): ?>
-            <tr>
-              <td><?= h($m['nome_completo']) ?></td>
-              <td><?= formatData($m['data_vencimento']) ?></td>
-              <td><?= formatMoeda($m['valor']) ?></td>
-            </tr>
-          <?php endforeach; ?>
-          </tbody>
-        </table>
+        <div style="max-height:280px;overflow-y:auto">
+          <table>
+            <thead style="position:sticky;top:0;background:#fff;z-index:1"><tr><th>Aluno</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead>
+            <tbody>
+            <?php foreach ($dados['proximos_vencimentos'] as $m): ?>
+              <tr style="cursor:pointer" onclick="location.href='<?= BASE_URL ?>/?page=alunos.ver&id=<?= $m['aluno_id'] ?>'"
+                  onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background=''">
+                <td class="fw-600"><?= h($m['nome_completo']) ?></td>
+                <td><?= formatData($m['data_vencimento']) ?></td>
+                <td><?= formatMoeda($m['valor']) ?></td>
+                <td>
+                  <span class="badge badge-danger">🔴 Atrasado</span>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <!-- LANÇAMENTOS FUTUROS -->
+  <div class="card">
+    <div class="card-header">
+      <span>📅</span>
+      <h2>Lancamentos Futuros</h2>
+      <a href="<?= BASE_URL ?>/?page=financeiro&status=pendente" class="btn btn-outline btn-sm">Ver todos</a>
+    </div>
+    <div class="card-body" style="padding:0">
+      <?php if (empty($dados['lancamentos_futuros'])): ?>
+        <div class="empty-state" style="padding:28px">
+          <div>📋</div><h3>Nenhum lancamento futuro</h3>
+          <p>Nenhuma cobrança pendente para os próximos meses.</p>
+        </div>
+      <?php else: ?>
+        <div style="max-height:280px;overflow-y:auto">
+          <table>
+            <thead style="position:sticky;top:0;background:#fff;z-index:1"><tr><th>Aluno</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead>
+            <tbody>
+            <?php foreach ($dados['lancamentos_futuros'] as $m): ?>
+              <tr style="cursor:pointer" onclick="location.href='<?= BASE_URL ?>/?page=alunos.ver&id=<?= $m['aluno_id'] ?>'"
+                  onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">
+                <td class="fw-600"><?= h($m['nome_completo']) ?></td>
+                <td><?= formatData($m['data_vencimento']) ?></td>
+                <td><?= formatMoeda($m['valor']) ?></td>
+                <td>
+                  <span class="badge badge-warning">⏳ Pendente</span>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
       <?php endif; ?>
     </div>
   </div>

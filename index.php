@@ -42,6 +42,7 @@ $routes = [
     'financeiro.salvar'      => 'controllers/FinanceiroController.php',
     'financeiro.pagar'       => 'controllers/FinanceiroController.php',
     'financeiro.excluir'     => 'controllers/FinanceiroController.php',
+    'financeiro.cancelar'    => 'controllers/FinanceiroController.php',
     'financeiro.gerar'       => 'controllers/FinanceiroController.php',
     'exames'                 => 'controllers/ExamesController.php',
     'exames.criar'           => 'controllers/ExamesController.php',

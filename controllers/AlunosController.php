@@ -6,6 +6,7 @@
 $model            = new AlunoModel();
 $responsavelModel = new ResponsavelModel();
 $academiaModel    = new AcademiaModel();
+$faixaModel       = new FaixaModel();
 $academiaId       = getAcademiaFiltro();
 
 switch ($page) {
@@ -19,8 +20,9 @@ switch ($page) {
             'serie'       => $_GET['serie'] ?? '',
             'busca'       => $_GET['busca'] ?? '',
         ];
-        $alunos   = $model->listar($filtros);
+        $alunos    = $model->listar($filtros);
         $academias = $academiaModel->listarAtivas();
+        $faixas    = $faixaModel->listar();
         require_once __DIR__ . '/../views/alunos/index.php';
         break;
 
@@ -31,6 +33,11 @@ switch ($page) {
         if (!$aluno) { flashSet('danger','Aluno não encontrado.'); redirect('alunos'); }
         $mensalidadeModel = new MensalidadeModel();
         $mensalidades = $mensalidadeModel->listar(['aluno_id' => $id]);
+        // Pendências atrasadas para cobrança
+        $pendenciasAtrasadas = array_filter($mensalidades, function($m) {
+            return $m['status'] === 'atrasado';
+        });
+        $totalAtrasado = array_sum(array_column($pendenciasAtrasadas, 'valor'));
         $exameModel   = new ExameModel();
         $exames       = $exameModel->listar($aluno['academia_id']);
         require_once __DIR__ . '/../views/alunos/ver.php';
@@ -40,6 +47,7 @@ switch ($page) {
     case 'alunos.criar':
         $responsaveis = $responsavelModel->listarParaSelect();
         $academias    = $academiaModel->listarAtivas();
+        $faixas       = $faixaModel->listar();
         $aluno        = [];
         require_once __DIR__ . '/../views/alunos/form.php';
         break;
@@ -53,13 +61,15 @@ switch ($page) {
             'turno'           => $_POST['turno'] ?? 'M',
             'contrato_ok'     => $_POST['contrato_ok'] ?? 0,
             'faixa'           => $_POST['faixa'] ?? 'branca',
-            'serie_nivel'     => $_POST['serie_nivel'] ?? null,
-            'tamanho'         => $_POST['tamanho'] ?? '',
-            'status'          => $_POST['status'] ?? 'ativo',
-            'data_entrada'    => $_POST['data_entrada'] ?? date('Y-m-d'),
-            'academia_id'     => $academiaId ?? (int)($_POST['academia_id'] ?? 0),
-            'responsavel_id'  => $_POST['responsavel_id'] ?? null,
-            'observacoes'     => $_POST['observacoes'] ?? '',
+            'serie_nivel'      => $_POST['serie_nivel'] ?? null,
+            'tamanho'          => $_POST['tamanho'] ?? '',
+            'peso'             => $_POST['peso'] ?? null,
+            'bolsa_percentual' => (int)($_POST['bolsa_percentual'] ?? 0),
+            'status'           => $_POST['status'] ?? 'ativo',
+            'data_entrada'     => $_POST['data_entrada'] ?? date('Y-m-d'),
+            'academia_id'      => $academiaId ?? (int)($_POST['academia_id'] ?? 0),
+            'responsavel_id'   => $_POST['responsavel_id'] ?? null,
+            'observacoes'      => $_POST['observacoes'] ?? '',
         ];
         if (!$dados['nome_completo'] || !$dados['academia_id']) {
             flashSet('danger', 'Nome e academia são obrigatórios.');
@@ -77,6 +87,7 @@ switch ($page) {
         if (!$aluno) { flashSet('danger','Aluno não encontrado.'); redirect('alunos'); }
         $responsaveis = $responsavelModel->listarParaSelect();
         $academias    = $academiaModel->listarAtivas();
+        $faixas       = $faixaModel->listar();
         require_once __DIR__ . '/../views/alunos/form.php';
         break;
 
@@ -85,18 +96,20 @@ switch ($page) {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('alunos'); }
         $id = (int)($_POST['id'] ?? 0);
         $dados = [
-            'nome_completo'   => trim($_POST['nome_completo'] ?? ''),
-            'data_nascimento' => $_POST['data_nascimento'] ?? '',
-            'turno'           => $_POST['turno'] ?? 'M',
-            'contrato_ok'     => $_POST['contrato_ok'] ?? 0,
-            'faixa'           => $_POST['faixa'] ?? 'branca',
-            'serie_nivel'     => $_POST['serie_nivel'] ?? null,
-            'tamanho'         => $_POST['tamanho'] ?? '',
-            'status'          => $_POST['status'] ?? 'ativo',
-            'data_entrada'    => $_POST['data_entrada'] ?? date('Y-m-d'),
-            'academia_id'     => $academiaId ?? (int)($_POST['academia_id'] ?? 0),
-            'responsavel_id'  => $_POST['responsavel_id'] ?? null,
-            'observacoes'     => $_POST['observacoes'] ?? '',
+            'nome_completo'    => trim($_POST['nome_completo'] ?? ''),
+            'data_nascimento'  => $_POST['data_nascimento'] ?? '',
+            'turno'            => $_POST['turno'] ?? 'M',
+            'contrato_ok'      => $_POST['contrato_ok'] ?? 0,
+            'faixa'            => $_POST['faixa'] ?? 'branca',
+            'serie_nivel'      => $_POST['serie_nivel'] ?? null,
+            'tamanho'          => $_POST['tamanho'] ?? '',
+            'peso'             => $_POST['peso'] ?? null,
+            'bolsa_percentual' => (int)($_POST['bolsa_percentual'] ?? 0),
+            'status'           => $_POST['status'] ?? 'ativo',
+            'data_entrada'     => $_POST['data_entrada'] ?? date('Y-m-d'),
+            'academia_id'      => $academiaId ?? (int)($_POST['academia_id'] ?? 0),
+            'responsavel_id'   => $_POST['responsavel_id'] ?? null,
+            'observacoes'      => $_POST['observacoes'] ?? '',
         ];
         $model->atualizar($id, $dados);
         flashSet('success', 'Aluno atualizado com sucesso!');

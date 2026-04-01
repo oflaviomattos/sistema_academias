@@ -109,7 +109,12 @@ $totPendente = array_filter($mensalidades, function($_m) {
           </td>
           <td class="text-muted text-small"><?= h($m['academia_nome'] ?? '-') ?></td>
           <td><?= mesReferencia($m['mes_referencia']) ?></td>
-          <td><?= formatMoeda($m['valor']) ?></td>
+          <td>
+            <?= formatMoeda($m['valor']) ?>
+            <?php if (!empty($m['bolsa_percentual'])): ?>
+              <span class="badge badge-info" style="font-size:10px;margin-left:4px"><?= $m['bolsa_percentual'] ?>%</span>
+            <?php endif; ?>
+          </td>
           <td><?= formatData($m['data_vencimento']) ?></td>
           <td>
             <?php
@@ -123,14 +128,14 @@ $totPendente = array_filter($mensalidades, function($_m) {
           <td><?= formatData($m['data_pagamento']) ?></td>
           <td>
             <div class="d-flex gap-8">
-              <?php if ($m['status'] !== 'pago' && $m['status'] !== 'integral'): ?>
+              <?php if ($m['status'] !== 'pago'): ?>
+              <?php if ($m['status'] !== 'integral'): ?>
               <a href="<?= BASE_URL ?>/?page=financeiro.pagar&id=<?= $m['id'] ?>"
-                 class="btn btn-success btn-xs">Pagar</a>
+                 class="btn btn-success btn-xs" title="Acusar Pagamento">✓</a>
               <?php endif; ?>
-              <?php if (isAdmin()): ?>
-              <a href="<?= BASE_URL ?>/?page=financeiro.excluir&id=<?= $m['id'] ?>"
-                 class="btn btn-danger btn-xs"
-                 data-confirm="Excluir este lançamento?">🗑</a>
+              <a href="<?= BASE_URL ?>/?page=financeiro.cancelar&id=<?= $m['id'] ?>"
+                 class="btn btn-outline btn-xs"
+                 data-confirm="Cancelar e excluir esta cobrança?" title="Cancelar lancamento">🚫</a>
               <?php endif; ?>
             </div>
           </td>

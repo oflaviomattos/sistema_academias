@@ -20,15 +20,27 @@
   </select>
   <select name="faixa" class="form-control">
     <option value="">Todas as faixas</option>
-    <?php foreach (FAIXAS as $f): ?>
-    <option value="<?= $f ?>" <?= ($_GET['faixa']??'')===$f?'selected':'' ?>><?= ucfirst($f) ?></option>
+    <?php foreach ($faixas as $f): ?>
+    <option value="<?= h($f['nome']) ?>" <?= ($_GET['faixa']??'')===$f['nome']?'selected':'' ?>><?= h($f['nome']) ?></option>
     <?php endforeach; ?>
   </select>
   <select name="serie" class="form-control">
     <option value="">Todas as séries</option>
-    <?php for ($i=1;$i<=6;$i++): ?>
-    <option value="<?= $i ?>" <?= ($_GET['serie']??'')==$i?'selected':'' ?>>Série <?= $i ?></option>
-    <?php endfor; ?>
+    <optgroup label="Infantil (2 a 5 anos)">
+      <?php for ($i=2;$i<=5;$i++): ?>
+      <option value="Infantil <?= $i ?>" <?= ($_GET['serie']??'')=='Infantil '.$i?'selected':'' ?>>Infantil <?= $i ?> ano<?= $i>1?'s':'' ?></option>
+      <?php endfor; ?>
+    </optgroup>
+    <optgroup label="Fundamental I (1 ao 5 ano)">
+      <?php for ($i=1;$i<=5;$i++): ?>
+      <option value="Fund I <?= $i ?>" <?= ($_GET['serie']??'')=='Fund I '.$i?'selected':'' ?>>Fundamental I - <?= $i ?>º ano</option>
+      <?php endfor; ?>
+    </optgroup>
+    <optgroup label="Fundamental II (6 ao 9 ano)">
+      <?php for ($i=6;$i<=9;$i++): ?>
+      <option value="Fund II <?= $i ?>" <?= ($_GET['serie']??'')=='Fund II '.$i?'selected':'' ?>>Fundamental II - <?= $i ?>º ano</option>
+      <?php endfor; ?>
+    </optgroup>
   </select>
   <button type="submit" class="btn btn-primary">Filtrar</button>
   <a href="<?= BASE_URL ?>/?page=alunos" class="btn btn-outline">Limpar</a>

@@ -117,9 +117,18 @@
                 <?= h($a['nome_completo']) ?>
               </a>
               <div style="font-size:12px;color:#64748b;margin-top:1px">
-                <?php if ($a['serie_nivel']): ?>
-                  Serie <?= $a['serie_nivel'] ?> ·
-                <?php endif; ?>
+                <?php
+                $sn = $a['serie_nivel'] ?? '';
+                if (strpos($sn, 'Infantil ') === 0) {
+                    echo 'Infantil ' . substr($sn, 9) . ' ano' . (substr($sn, 9) > 1 ? 's' : '') . ' · ';
+                } elseif (strpos($sn, 'Fund I ') === 0) {
+                    echo 'Fund I ' . substr($sn, 7) . 'º · ';
+                } elseif (strpos($sn, 'Fund II ') === 0) {
+                    echo 'Fund II ' . substr($sn, 8) . 'º · ';
+                } elseif ($sn) {
+                    echo h($sn) . ' · ';
+                }
+                ?>
                 <?= h($a['academia_nome'] ?? '') ?>
               </div>
             </div>

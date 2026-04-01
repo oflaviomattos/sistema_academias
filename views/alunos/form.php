@@ -9,7 +9,11 @@ $a = $aluno; // atalho
   <div class="card-header">
     <span><?= $editando ? '✏️' : '➕' ?></span>
     <h2><?= $pageTitle ?></h2>
-    <a href="<?= BASE_URL ?>/?page=alunos" class="btn btn-outline btn-sm ms-auto">← Voltar</a>
+    <?php if ($editando): ?>
+      <a href="<?= BASE_URL ?>/?page=alunos.ver&id=<?= $a['id'] ?>" class="btn btn-outline btn-sm ms-auto">← Voltar</a>
+    <?php else: ?>
+      <a href="<?= BASE_URL ?>/?page=alunos" class="btn btn-outline btn-sm ms-auto">← Voltar</a>
+    <?php endif; ?>
   </div>
   <div class="card-body">
     <form method="POST"
@@ -62,16 +66,28 @@ $a = $aluno; // atalho
           <label>Série / Nível</label>
           <select name="serie_nivel" class="form-control">
             <option value="">—</option>
-            <?php for ($i=1;$i<=6;$i++): ?>
-            <option value="<?= $i ?>" <?= ($a['serie_nivel']??'')==$i?'selected':'' ?>>Série <?= $i ?></option>
-            <?php endfor; ?>
+            <optgroup label="Infantil (2 a 5 anos)">
+              <?php for ($i=2;$i<=5;$i++): ?>
+              <option value="Infantil <?= $i ?>" <?= ($a['serie_nivel']??'')=='Infantil '.$i?'selected':'' ?>><?= $i ?> ano<?= $i>1?'s':'' ?></option>
+              <?php endfor; ?>
+            </optgroup>
+            <optgroup label="Fundamental I (1 ao 5 ano)">
+              <?php for ($i=1;$i<=5;$i++): ?>
+              <option value="Fund I <?= $i ?>" <?= ($a['serie_nivel']??'')=='Fund I '.$i?'selected':'' ?>><?= $i ?><?= $i==1?'º':'º' ?> ano</option>
+              <?php endfor; ?>
+            </optgroup>
+            <optgroup label="Fundamental II (6 ao 9 ano)">
+              <?php for ($i=6;$i<=9;$i++): ?>
+              <option value="Fund II <?= $i ?>" <?= ($a['serie_nivel']??'')=='Fund II '.$i?'selected':'' ?>><?= $i ?>º ano</option>
+              <?php endfor; ?>
+            </optgroup>
           </select>
         </div>
         <div class="form-group">
           <label>Faixa</label>
           <select name="faixa" class="form-control">
-            <?php foreach (FAIXAS as $f): ?>
-            <option value="<?= $f ?>" <?= ($a['faixa']??'branca')===$f?'selected':'' ?>><?= ucfirst($f) ?></option>
+            <?php foreach ($faixas as $f): ?>
+            <option value="<?= h($f['nome']) ?>" <?= ($a['faixa']??'branca')===$f['nome']?'selected':'' ?>><?= h($f['nome']) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -79,6 +95,24 @@ $a = $aluno; // atalho
           <label>Tamanho (kimono)</label>
           <input type="text" name="tamanho" class="form-control"
                  value="<?= h($a['tamanho'] ?? '') ?>" placeholder="ex: M2, A1">
+        </div>
+        <div class="form-group">
+          <label>Peso (kg)</label>
+          <input type="number" name="peso" class="form-control" step="0.01" min="0"
+                 value="<?= h($a['peso'] ?? '') ?>" placeholder="ex: 45.5">
+        </div>
+        <div class="form-group">
+          <label>Bolsa</label>
+          <select name="bolsa_percentual" class="form-control">
+            <option value="0" <?= ($a['bolsa_percentual']??0)==0?'selected':'' ?>>Sem bolsa</option>
+            <option value="10" <?= ($a['bolsa_percentual']??0)==10?'selected':'' ?>>10%</option>
+            <option value="15" <?= ($a['bolsa_percentual']??0)==15?'selected':'' ?>>15%</option>
+            <option value="20" <?= ($a['bolsa_percentual']??0)==20?'selected':'' ?>>20%</option>
+            <option value="30" <?= ($a['bolsa_percentual']??0)==30?'selected':'' ?>>30%</option>
+            <option value="50" <?= ($a['bolsa_percentual']??0)==50?'selected':'' ?>>50%</option>
+            <option value="70" <?= ($a['bolsa_percentual']??0)==70?'selected':'' ?>>70%</option>
+            <option value="100" <?= ($a['bolsa_percentual']??0)==100?'selected':'' ?>>100% (integral)</option>
+          </select>
         </div>
         <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:4px">
           <label class="form-check">

@@ -36,7 +36,7 @@ class MensalidadeModel {
             $params['busca'] = '%' . $filtros['busca'] . '%';
         }
 
-        $sql = "SELECT m.*, al.nome_completo, al.faixa,
+        $sql = "SELECT m.*, al.nome_completo, al.faixa, al.turno, al.bolsa_percentual,
                        ac.nome AS academia_nome
                 FROM mensalidades m
                 JOIN alunos al ON al.id = m.aluno_id
@@ -102,6 +102,11 @@ class MensalidadeModel {
         ]);
     }
 
+    public function cancelar(int $id): bool {
+        $stmt = $this->db->prepare("DELETE FROM mensalidades WHERE id=:id");
+        return $stmt->execute(['id' => $id]);
+    }
+
     public function atualizar(int $id, array $dados): bool {
         $stmt = $this->db->prepare(
             "UPDATE mensalidades SET valor=:valor, status=:status,
@@ -124,14 +129,70 @@ class MensalidadeModel {
         return $stmt->execute(['id' => $id]);
     }
 
-    // Atualiza automaticamente status para 'atrasado' onde venceu e não foi pago
+    // Calcula o N-ésimo dia útil de um mês/ano
+    private function diaUtilMes(int $ano, int $mes, int $n): string {
+        $dia = 1;
+        $contador = 0;
+        while ($contador < $n) {
+            $data = mktime(0, 0, 0, $mes, $dia, $ano);
+            $semana = date('w', $data); // 0=domingo, 6=sábado
+            if ($semana != 0 && $semana != 6) {
+                $contador++;
+                if ($contador == $n) break;
+            }
+            $dia++;
+        }
+        return sprintf('%04d-%02d-%02d', $ano, $mes, $dia);
+    }
+
+    // Atualiza automaticamente status para 'atrasado' após o 5º dia útil do mês seguinte
     public function atualizarAtrasados(): int {
-        $stmt = $this->db->prepare(
-            "UPDATE mensalidades SET status='atrasado'
-             WHERE status='pendente' AND data_vencimento < CURDATE()"
-        );
+        // Primeiro: reseta atrasados que ainda não deveriam estar (correção da lógica antiga)
+        $stmt = $this->db->prepare("SELECT id, mes_referencia FROM mensalidades WHERE status='atrasado'");
         $stmt->execute();
-        return $stmt->rowCount();
+        $atrasados = $stmt->fetchAll();
+
+        foreach ($atrasados as $p) {
+            $partes = explode('-', $p['mes_referencia']);
+            $ano = (int)$partes[0];
+            $mes = (int)$partes[1];
+            $mesSeg = $mes + 1;
+            $anoSeg = $ano;
+            if ($mesSeg > 12) { $mesSeg = 1; $anoSeg++; }
+            $limite = $this->diaUtilMes($anoSeg, $mesSeg, 5);
+            $hoje = date('Y-m-d');
+            if ($hoje <= $limite) {
+                $upd = $this->db->prepare("UPDATE mensalidades SET status='pendente' WHERE id=:id");
+                $upd->execute(['id' => $p['id']]);
+            }
+        }
+
+        // Depois: marca como atrasado os que já passaram do 5º dia útil
+        $stmt = $this->db->prepare("SELECT id, mes_referencia FROM mensalidades WHERE status='pendente'");
+        $stmt->execute();
+        $pendentes = $stmt->fetchAll();
+
+        $hoje = date('Y-m-d');
+        $atualizados = 0;
+
+        foreach ($pendentes as $p) {
+            $partes = explode('-', $p['mes_referencia']);
+            $ano = (int)$partes[0];
+            $mes = (int)$partes[1];
+
+            $mesSeg = $mes + 1;
+            $anoSeg = $ano;
+            if ($mesSeg > 12) { $mesSeg = 1; $anoSeg++; }
+
+            $limite = $this->diaUtilMes($anoSeg, $mesSeg, 5);
+
+            if ($hoje > $limite) {
+                $upd = $this->db->prepare("UPDATE mensalidades SET status='atrasado' WHERE id=:id");
+                $upd->execute(['id' => $p['id']]);
+                $atualizados++;
+            }
+        }
+        return $atualizados;
     }
 
     // Dashboard: inadimplentes
@@ -232,19 +293,47 @@ class MensalidadeModel {
         return array_values($porResponsavel);
     }
 
-    // Próximos vencimentos (7 dias)
+    // Lançamentos atrasados
     public function proximosVencimentos(?int $academiaId = null): array {
-        $sql = "SELECT m.*, al.nome_completo, ac.nome AS academia_nome
+        $this->atualizarAtrasados();
+
+        $sql = "SELECT m.*, al.nome_completo
                 FROM mensalidades m
                 JOIN alunos al ON al.id = m.aluno_id
-                JOIN academias ac ON ac.id = al.academia_id
-                WHERE m.status IN ('pendente') AND m.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)";
+                WHERE m.status = 'atrasado'";
         $params = [];
         if ($academiaId) { $sql .= " AND al.academia_id=:a"; $params['a'] = $academiaId; }
-        $sql .= " ORDER BY m.data_vencimento ASC LIMIT 20";
+        $sql .= " ORDER BY m.data_vencimento ASC LIMIT 50";
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll();
+    }
+
+    // Lançamentos futuros pendentes
+    public function lancamentosFuturos(?int $academiaId = null): array {
+        $sql = "SELECT m.*, al.nome_completo
+                FROM mensalidades m
+                JOIN alunos al ON al.id = m.aluno_id
+                WHERE m.status = 'pendente'";
+        $params = [];
+        if ($academiaId) { $sql .= " AND al.academia_id=:a"; $params['a'] = $academiaId; }
+        $sql .= " ORDER BY m.data_vencimento ASC LIMIT 50";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    // Total a receber no mês subsequente
+    public function totalMesSubsequente(?int $academiaId = null): float {
+        $sql = "SELECT COALESCE(SUM(m.valor),0) FROM mensalidades m
+                JOIN alunos al ON al.id = m.aluno_id
+                WHERE m.status = 'pendente'
+                  AND m.mes_referencia = DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH), '%Y-%m')";
+        $params = [];
+        if ($academiaId) { $sql .= " AND al.academia_id=:a"; $params['a'] = $academiaId; }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return (float)$stmt->fetchColumn();
     }
 
     // Total recebido no mês
@@ -261,7 +350,7 @@ class MensalidadeModel {
 
     // Gerar mensalidades em lote para todos os alunos ativos de uma academia num mês
     public function gerarEmLote(int $academiaId, string $mes, float $valor, string $vencimento): int {
-        $stmt = $this->db->prepare("SELECT id FROM alunos WHERE academia_id=:a AND status='ativo'");
+        $stmt = $this->db->prepare("SELECT id, bolsa_percentual FROM alunos WHERE academia_id=:a AND status='ativo'");
         $stmt->execute(['a' => $academiaId]);
         $alunos = $stmt->fetchAll();
 
@@ -271,13 +360,36 @@ class MensalidadeModel {
             $existe = $this->buscarPorAlunoMes((int)$aluno['id'], $mes);
             if ($existe) continue;
 
-            $this->criar([
-                'aluno_id'        => $aluno['id'],
-                'mes_referencia'  => $mes,
-                'valor'           => $valor,
-                'status'          => 'pendente',
-                'data_vencimento' => $vencimento,
-            ]);
+            $bolsa = (int)$aluno['bolsa_percentual'];
+
+            if ($bolsa === 100) {
+                // Bolsa integral: marca como integral sem cobrança
+                $this->criar([
+                    'aluno_id'        => $aluno['id'],
+                    'mes_referencia'  => $mes,
+                    'valor'           => 0,
+                    'status'          => 'integral',
+                    'data_vencimento' => $vencimento,
+                    'observacoes'     => 'Bolsa integral 100%',
+                ]);
+            } else {
+                // Aplica desconto se houver bolsa
+                $valorFinal = $valor;
+                $obs = null;
+                if ($bolsa > 0) {
+                    $desconto = $valor * ($bolsa / 100);
+                    $valorFinal = $valor - $desconto;
+                    $obs = "Bolsa {$bolsa}%: desconto de R$ " . number_format($desconto, 2, ',', '.') . " (valor original R$ " . number_format($valor, 2, ',', '.') . ")";
+                }
+                $this->criar([
+                    'aluno_id'        => $aluno['id'],
+                    'mes_referencia'  => $mes,
+                    'valor'           => $valorFinal,
+                    'status'          => 'pendente',
+                    'data_vencimento' => $vencimento,
+                    'observacoes'     => $obs,
+                ]);
+            }
             $criados++;
         }
         return $criados;

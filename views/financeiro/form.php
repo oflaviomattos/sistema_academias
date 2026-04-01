@@ -2,7 +2,11 @@
 <div class="card" style="max-width:580px">
   <div class="card-header">
     <span>💳</span><h2>Lancar Mensalidade</h2>
-    <a href="<?= BASE_URL ?>/?page=financeiro" class="btn btn-outline btn-sm ms-auto">← Voltar</a>
+    <?php if (!empty($_GET['aluno_id'])): ?>
+      <a href="<?= BASE_URL ?>/?page=alunos.ver&id=<?= (int)$_GET['aluno_id'] ?>" class="btn btn-outline btn-sm ms-auto">← Voltar</a>
+    <?php else: ?>
+      <a href="<?= BASE_URL ?>/?page=financeiro" class="btn btn-outline btn-sm ms-auto">← Voltar</a>
+    <?php endif; ?>
   </div>
   <div class="card-body">
     <form method="POST" action="<?= BASE_URL ?>/?page=financeiro.salvar">
@@ -105,7 +109,11 @@
         <button type="submit" class="btn btn-success" id="btn-submit" <?= empty($_GET['aluno_id']) ? 'disabled' : '' ?>>
           ✅ Lancar
         </button>
-        <a href="<?= BASE_URL ?>/?page=financeiro" class="btn btn-outline">Cancelar</a>
+        <?php if (!empty($_GET['aluno_id'])): ?>
+          <a href="<?= BASE_URL ?>/?page=alunos.ver&id=<?= (int)$_GET['aluno_id'] ?>" class="btn btn-outline">Cancelar</a>
+        <?php else: ?>
+          <a href="<?= BASE_URL ?>/?page=financeiro" class="btn btn-outline">Cancelar</a>
+        <?php endif; ?>
       </div>
     </form>
   </div>
@@ -131,7 +139,13 @@ function buscarAluno(q) {
             }
             var html = '';
             alunos.forEach(function(a) {
-                var info = a.faixa + (a.serie_nivel ? ' · S' + a.serie_nivel : '') + (a.academia_nome ? ' · ' + a.academia_nome : '');
+                var sn = a.serie_nivel || '';
+                var serieLabel = '';
+                if (sn.indexOf('Infantil ') === 0) serieLabel = 'Inf' + sn.substring(9);
+                else if (sn.indexOf('Fund I ') === 0) serieLabel = 'FI' + sn.substring(7) + 'º';
+                else if (sn.indexOf('Fund II ') === 0) serieLabel = 'FII' + sn.substring(8) + 'º';
+                else if (sn) serieLabel = sn;
+                var info = a.faixa + (serieLabel ? ' · ' + serieLabel : '') + (a.academia_nome ? ' · ' + a.academia_nome : '');
                 html += '<div style="padding:10px 16px;cursor:pointer;border-bottom:1px solid #f1f5f9"'
                       + ' onclick="selecionarAluno(' + a.id + ', \'' + a.nome_completo.replace(/'/g,"\\'") + '\', \'' + a.faixa + '\')"'
                       + ' onmouseover="this.style.background=\'#f0fdf4\'"'

@@ -54,37 +54,6 @@
     }
   </script>
 
-  <!-- PWA: botão de instalar (aparece automaticamente quando disponível) -->
-  <style>
-    #btn-instalar {
-      display: none;
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 9999;
-      background: #1a56db;
-      color: #fff;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 50px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 20px rgba(26,86,219,.4);
-      display: none;
-      align-items: center;
-      gap: 8px;
-      font-family: inherit;
-    }
-    #btn-instalar:hover { filter: brightness(.9); }
-
-    /* Ajuste para iOS safe area (notch) */
-    .main-wrapper { padding-bottom: env(safe-area-inset-bottom); }
-    .sidebar {
-      padding-top: env(safe-area-inset-top);
-      height: calc(100vh + env(safe-area-inset-top));
-    }
-  </style>
 </head>
 <body>
 
@@ -201,10 +170,18 @@
 <!-- MAIN -->
 <div class="main-wrapper">
   <div class="topbar">
-    <button onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none;background:none;border:none;cursor:pointer;padding:4px" id="menu-btn">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <button id="menu-btn" aria-label="Menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="3" y1="6"  x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
     </button>
     <span class="topbar-title"><?= h($pageTitle ?? '') ?></span>
+    <button id="btn-ocultar-valores" onclick="toggleValores()" title="Ocultar/mostrar valores"
+            style="background:none;border:1px solid #d1d5db;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:16px;margin-right:8px">
+      👁
+    </button>
     <span class="topbar-user">
       <?php if (!isAdmin() && !empty($_SESSION['academia_id'])): ?>
         <?php

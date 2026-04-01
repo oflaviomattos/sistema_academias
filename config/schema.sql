@@ -69,8 +69,10 @@ CREATE TABLE IF NOT EXISTS alunos (
   turno          ENUM('M','T','N','MT') NOT NULL DEFAULT 'M',
   contrato_ok    TINYINT(1)   NOT NULL DEFAULT 0,  -- coluna "contrato" da planilha
   faixa          VARCHAR(30)  NOT NULL DEFAULT 'branca',
-  serie_nivel    TINYINT(1)   NULL,                -- # da série (1,2,3,4,5...)
+  serie_nivel    VARCHAR(20)  NULL,                -- Infantil, Pre, Ensino Medio
   tamanho        VARCHAR(10)  NULL,
+  peso           DECIMAL(5,2) NULL,                -- peso em kg
+  bolsa_percentual TINYINT UNSIGNED NOT NULL DEFAULT 0, -- 0=sem bolsa, 10/15/20/30/50/70/100
   status         ENUM('ativo','inativo') NOT NULL DEFAULT 'ativo',
   data_entrada   DATE         NOT NULL,
   academia_id    INT UNSIGNED NOT NULL,
@@ -187,6 +189,30 @@ CREATE TABLE IF NOT EXISTS campeonato_aluno (
     FOREIGN KEY (aluno_id) REFERENCES alunos(id)
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------
+-- 10. FAIXAS CONFIGURAVEIS
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS faixas (
+  id       INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  nome     VARCHAR(60)   NOT NULL,
+  cor_hex  VARCHAR(7)    NOT NULL DEFAULT '#cccccc',
+  ordem    INT UNSIGNED  NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_faixa_nome (nome)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Faixas padrao
+INSERT IGNORE INTO faixas (nome, cor_hex, ordem) VALUES
+  ('branca',  '#ffffff', 1),
+  ('cinza',   '#9ca3af', 2),
+  ('azul',    '#3b82f6', 3),
+  ('amarela', '#eab308', 4),
+  ('laranja', '#f97316', 5),
+  ('verde',   '#22c55e', 6),
+  ('roxa',    '#a855f7', 7),
+  ('marrom',  '#92400e', 8),
+  ('preta',   '#1e293b', 9);
 
 SET FOREIGN_KEY_CHECKS = 1;
 

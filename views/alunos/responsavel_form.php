@@ -66,9 +66,18 @@ $idsVinculados = array_column($alunosVinculados, 'id');
               <?= h($a['faixa']) ?>
             </span>
             <span style="flex:1;font-size:13.5px;font-weight:500"><?= h($a['nome_completo']) ?></span>
-            <?php if ($a['serie_nivel']): ?>
-            <span class="text-muted text-small">S<?= $a['serie_nivel'] ?></span>
-            <?php endif; ?>
+            <?php
+            $sn = $a['serie_nivel'] ?? '';
+            if (strpos($sn, 'Infantil ') === 0) {
+                echo '<span class="text-muted text-small">Inf' . substr($sn, 9) . '</span>';
+            } elseif (strpos($sn, 'Fund I ') === 0) {
+                echo '<span class="text-muted text-small">FI' . substr($sn, 7) . 'º</span>';
+            } elseif (strpos($sn, 'Fund II ') === 0) {
+                echo '<span class="text-muted text-small">FII' . substr($sn, 8) . 'º</span>';
+            } elseif ($sn) {
+                echo '<span class="text-muted text-small">' . h($sn) . '</span>';
+            }
+            ?>
             <a href="<?= APP_URL ?>/index.php?page=responsaveis.desvincular&aluno_id=<?= $a['id'] ?>&responsavel_id=<?= $r['id'] ?>"
                class="btn btn-danger btn-xs"
                data-confirm="Desvincular <?= h($a['nome_completo']) ?> deste responsavel?"

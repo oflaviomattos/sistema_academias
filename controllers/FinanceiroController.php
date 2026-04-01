@@ -47,9 +47,22 @@ switch ($page) {
             flashSet('warning', 'Já existe mensalidade para este aluno neste mês.');
             redirect('financeiro.lancar');
         }
+        // Verifica bolsa do aluno
+        $alunoBolsa = $alunoModel->buscarPorId($dados['aluno_id']);
+        if ($alunoBolsa && (int)$alunoBolsa['bolsa_percentual'] === 100) {
+            $dados['valor']  = 0;
+            $dados['status'] = 'integral';
+            $dados['observacoes'] = trim(($dados['observacoes'] ? $dados['observacoes'] . ' — ' : '') . 'Bolsa integral 100%');
+        } elseif ($alunoBolsa && (int)$alunoBolsa['bolsa_percentual'] > 0) {
+            $pct     = (int)$alunoBolsa['bolsa_percentual'];
+            $desconto = $dados['valor'] * ($pct / 100);
+            $dados['valor'] = $dados['valor'] - $desconto;
+            $obs = "Bolsa {$pct}%: desconto de R$ " . number_format($desconto, 2, ',', '.') . " (valor original R$ " . number_format($dados['valor'] + $desconto, 2, ',', '.') . ")";
+            $dados['observacoes'] = trim(($dados['observacoes'] ? $dados['observacoes'] . ' — ' : '') . $obs);
+        }
         $mensalidadeModel->criar($dados);
         flashSet('success', 'Mensalidade lançada com sucesso!');
-        redirect('financeiro');
+        redirect('alunos.ver&id=' . $dados['aluno_id']);
         break;
 
     case 'financeiro.pagar':
@@ -65,6 +78,18 @@ switch ($page) {
         }
         $mensalidade = $mensalidadeModel->buscarPorId($id);
         require_once __DIR__ . '/../views/financeiro/pagar.php';
+        break;
+
+    case 'financeiro.cancelar':
+        $id = (int)($_GET['id'] ?? 0);
+        $mensalidade = $mensalidadeModel->buscarPorId($id);
+        if ($mensalidade) {
+            $mensalidadeModel->cancelar($id);
+            flashSet('success', 'Cobrança cancelada com sucesso!');
+            redirect('alunos.ver&id=' . $mensalidade['aluno_id']);
+        }
+        flashSet('danger', 'Mensalidade não encontrada.');
+        redirect('financeiro');
         break;
 
     case 'financeiro.excluir':

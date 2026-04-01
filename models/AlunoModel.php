@@ -65,23 +65,25 @@ class AlunoModel {
     public function criar(array $dados): int {
         $stmt = $this->db->prepare(
             "INSERT INTO alunos (nome_completo, data_nascimento, turno, contrato_ok, faixa,
-             serie_nivel, tamanho, status, data_entrada, academia_id, responsavel_id, observacoes)
+             serie_nivel, tamanho, peso, bolsa_percentual, status, data_entrada, academia_id, responsavel_id, observacoes)
              VALUES (:nome_completo, :data_nascimento, :turno, :contrato_ok, :faixa,
-             :serie_nivel, :tamanho, :status, :data_entrada, :academia_id, :responsavel_id, :observacoes)"
+             :serie_nivel, :tamanho, :peso, :bolsa_percentual, :status, :data_entrada, :academia_id, :responsavel_id, :observacoes)"
         );
         $stmt->execute([
-            'nome_completo'   => $dados['nome_completo'],
-            'data_nascimento' => $dados['data_nascimento'] ?: null,
-            'turno'           => $dados['turno'] ?? 'M',
-            'contrato_ok'     => !empty($dados['contrato_ok']) ? 1 : 0,
-            'faixa'           => $dados['faixa'] ?? 'branca',
-            'serie_nivel'     => $dados['serie_nivel'] ?: null,
-            'tamanho'         => $dados['tamanho'] ?: null,
-            'status'          => $dados['status'] ?? 'ativo',
-            'data_entrada'    => $dados['data_entrada'],
-            'academia_id'     => $dados['academia_id'],
-            'responsavel_id'  => $dados['responsavel_id'] ?: null,
-            'observacoes'     => $dados['observacoes'] ?: null,
+            'nome_completo'    => $dados['nome_completo'],
+            'data_nascimento'  => $dados['data_nascimento'] ?: null,
+            'turno'            => $dados['turno'] ?? 'M',
+            'contrato_ok'      => !empty($dados['contrato_ok']) ? 1 : 0,
+            'faixa'            => $dados['faixa'] ?? 'branca',
+            'serie_nivel'      => $dados['serie_nivel'] ?: null,
+            'tamanho'          => $dados['tamanho'] ?: null,
+            'peso'             => $dados['peso'] ?: null,
+            'bolsa_percentual' => (int)($dados['bolsa_percentual'] ?? 0),
+            'status'           => $dados['status'] ?? 'ativo',
+            'data_entrada'     => $dados['data_entrada'],
+            'academia_id'      => $dados['academia_id'],
+            'responsavel_id'   => $dados['responsavel_id'] ?: null,
+            'observacoes'      => $dados['observacoes'] ?: null,
         ]);
         return (int) $this->db->lastInsertId();
     }
@@ -90,24 +92,26 @@ class AlunoModel {
         $stmt = $this->db->prepare(
             "UPDATE alunos SET nome_completo=:nome_completo, data_nascimento=:data_nascimento,
              turno=:turno, contrato_ok=:contrato_ok, faixa=:faixa, serie_nivel=:serie_nivel,
-             tamanho=:tamanho, status=:status, data_entrada=:data_entrada,
+             tamanho=:tamanho, peso=:peso, bolsa_percentual=:bolsa_percentual, status=:status, data_entrada=:data_entrada,
              academia_id=:academia_id, responsavel_id=:responsavel_id, observacoes=:observacoes
              WHERE id=:id"
         );
         return $stmt->execute([
-            'id'              => $id,
-            'nome_completo'   => $dados['nome_completo'],
-            'data_nascimento' => $dados['data_nascimento'] ?: null,
-            'turno'           => $dados['turno'] ?? 'M',
-            'contrato_ok'     => !empty($dados['contrato_ok']) ? 1 : 0,
-            'faixa'           => $dados['faixa'] ?? 'branca',
-            'serie_nivel'     => $dados['serie_nivel'] ?: null,
-            'tamanho'         => $dados['tamanho'] ?: null,
-            'status'          => $dados['status'] ?? 'ativo',
-            'data_entrada'    => $dados['data_entrada'],
-            'academia_id'     => $dados['academia_id'],
-            'responsavel_id'  => $dados['responsavel_id'] ?: null,
-            'observacoes'     => $dados['observacoes'] ?: null,
+            'id'               => $id,
+            'nome_completo'    => $dados['nome_completo'],
+            'data_nascimento'  => $dados['data_nascimento'] ?: null,
+            'turno'            => $dados['turno'] ?? 'M',
+            'contrato_ok'      => !empty($dados['contrato_ok']) ? 1 : 0,
+            'faixa'            => $dados['faixa'] ?? 'branca',
+            'serie_nivel'      => $dados['serie_nivel'] ?: null,
+            'tamanho'          => $dados['tamanho'] ?: null,
+            'peso'             => $dados['peso'] ?: null,
+            'bolsa_percentual' => (int)($dados['bolsa_percentual'] ?? 0),
+            'status'           => $dados['status'] ?? 'ativo',
+            'data_entrada'     => $dados['data_entrada'],
+            'academia_id'      => $dados['academia_id'],
+            'responsavel_id'   => $dados['responsavel_id'] ?: null,
+            'observacoes'      => $dados['observacoes'] ?: null,
         ]);
     }
 
